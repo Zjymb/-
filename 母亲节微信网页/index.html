@@ -1,0 +1,797 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="format-detection" content="telephone=no,email=no,address=no">
+  <title>母亲节快乐</title>
+  <style>
+    :root {
+      --bg: #f6c6cc;
+      --bg-top: #e4b7be;
+      --pink: #ff95b4;
+      --pink-deep: #d95d83;
+      --pink-text: #c44c74;
+      --ink: #6f4759;
+      --paper: #fffdfd;
+      --stroke: #2d2228;
+      --shadow: 0 18px 42px rgba(180, 105, 130, 0.22);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      min-height: 100%;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top center, rgba(255,255,255,0.36), transparent 26%),
+        linear-gradient(180deg, var(--bg-top) 0%, var(--bg) 14%, #f8cbd2 100%);
+      overflow-x: hidden;
+    }
+
+    body.locked {
+      overflow: hidden;
+    }
+
+    .music-btn {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 40;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 999px;
+      color: #fff;
+      background: linear-gradient(135deg, #ff8fb2, #ea628c);
+      box-shadow: 0 12px 24px rgba(218, 94, 133, 0.28);
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .music-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .disc {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at center, white 0 18%, transparent 20%),
+        linear-gradient(180deg, #ffe0eb, #ff8faf);
+      animation: spin 2.8s linear infinite;
+      animation-play-state: paused;
+    }
+
+    .music-btn.playing .disc {
+      animation-play-state: running;
+    }
+
+    .floating,
+    .intro-floating {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      overflow: hidden;
+      z-index: 0;
+    }
+
+    .float-item {
+      position: absolute;
+      top: -10vh;
+      color: rgba(255,255,255,0.72);
+      animation: floatDown linear infinite;
+      user-select: none;
+    }
+
+    .intro-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      display: flex;
+      justify-content: center;
+      overflow-y: auto;
+      padding: 20px 12px 28px;
+      background:
+        radial-gradient(circle at top center, rgba(255,255,255,0.24), transparent 24%),
+        linear-gradient(180deg, #e4b7be 0%, #f5c4cb 18%, #f8cdd4 100%);
+      transition: opacity 0.7s ease, visibility 0.7s ease;
+    }
+
+    .intro-screen.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .unlock-mask {
+      position: fixed;
+      inset: 0;
+      z-index: 35;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(255, 208, 220, 0.2);
+      backdrop-filter: blur(4px);
+      -webkit-backdrop-filter: blur(4px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.25s ease, visibility 0.25s ease;
+    }
+
+    .unlock-mask.show {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .unlock-card {
+      width: min(100%, 360px);
+      padding: 20px 18px;
+      border-radius: 22px;
+      background: rgba(255,255,255,0.92);
+      box-shadow: 0 18px 36px rgba(201, 109, 139, 0.22);
+      text-align: center;
+      color: var(--pink-text);
+    }
+
+    .unlock-card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 18px;
+    }
+
+    .unlock-card span {
+      font-size: 14px;
+      line-height: 1.8;
+      color: #a85e79;
+    }
+
+    .intro-card {
+      position: relative;
+      width: min(100%, 520px);
+      min-height: calc(100vh - 48px);
+      padding: 22px 16px 30px;
+      text-align: center;
+    }
+
+    .top-ui {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      color: rgba(255,255,255,0.96);
+      font-size: 18px;
+    }
+
+    .fake-icon {
+      font-size: 34px;
+      line-height: 1;
+      font-weight: 300;
+    }
+
+    .bubble-title {
+      position: relative;
+      display: inline-block;
+      margin: 8px auto 18px;
+      padding: 18px 18px 14px;
+      font-size: clamp(40px, 11vw, 58px);
+      font-weight: 900;
+      line-height: 1;
+      color: #ffcbe0;
+      background: rgba(255, 194, 215, 0.72);
+      border: 6px solid rgba(255, 183, 206, 0.74);
+      border-radius: 34px;
+      text-shadow:
+        -3px -3px 0 var(--stroke),
+        3px -3px 0 var(--stroke),
+        -3px 3px 0 var(--stroke),
+        3px 3px 0 var(--stroke),
+        0 4px 0 rgba(255,255,255,0.8);
+      box-shadow: var(--shadow);
+    }
+
+    .bubble-title .small-love {
+      position: absolute;
+      right: 4px;
+      bottom: -22px;
+      display: inline-block;
+      padding: 4px 10px 2px;
+      border-radius: 999px;
+      background: #fff2f7;
+      color: #ff8eb2;
+      font-size: 22px;
+      border: 3px solid var(--stroke);
+      text-shadow: none;
+      transform: rotate(-7deg);
+    }
+
+    .bubble-title::before,
+    .bubble-title::after {
+      content: "❤";
+      position: absolute;
+      color: #ff8cb0;
+      font-size: 28px;
+      text-shadow:
+        -2px -2px 0 var(--stroke),
+        2px -2px 0 var(--stroke),
+        -2px 2px 0 var(--stroke),
+        2px 2px 0 var(--stroke);
+    }
+
+    .bubble-title::before {
+      left: 16px;
+      bottom: -28px;
+    }
+
+    .bubble-title::after {
+      right: 20px;
+      top: -18px;
+    }
+
+    .intro-decor {
+      position: relative;
+      margin: 20px auto 14px;
+      min-height: 290px;
+    }
+
+    .cartoon,
+    .heart-balloon,
+    .love-heart,
+    .small-card,
+    .flower {
+      position: absolute;
+    }
+
+    .cartoon {
+      left: 4px;
+      top: 34px;
+      font-size: 68px;
+      transform: rotate(-6deg);
+    }
+
+    .young {
+      position: absolute;
+      left: 4px;
+      top: 148px;
+      color: #62a7e8;
+      font-size: 34px;
+      font-weight: 800;
+      line-height: 1.05;
+      transform: rotate(-8deg);
+      opacity: 0.92;
+    }
+
+    .heart-balloon {
+      left: 132px;
+      top: 86px;
+      width: 88px;
+      height: 96px;
+      border-radius: 52% 48% 54% 46%;
+      background: #9a94ff;
+      border: 4px solid var(--stroke);
+      transform: rotate(6deg);
+    }
+
+    .heart-balloon::after {
+      content: "";
+      position: absolute;
+      left: 42px;
+      top: 92px;
+      width: 3px;
+      height: 108px;
+      background: var(--stroke);
+      border-radius: 2px;
+    }
+
+    .flag {
+      position: absolute;
+      left: 118px;
+      top: 38px;
+      color: #dc9d58;
+      font-weight: 800;
+      font-size: 18px;
+      letter-spacing: 2px;
+      transform: rotate(3deg);
+    }
+
+    .love-heart {
+      right: 8px;
+      top: 42px;
+      width: 144px;
+      height: 122px;
+      padding-top: 24px;
+      border-radius: 58% 58% 50% 50%;
+      background: #f38957;
+      border: 4px solid var(--stroke);
+      color: #fff5be;
+      font-size: 18px;
+      font-weight: 900;
+      line-height: 1.25;
+      transform: rotate(7deg);
+    }
+
+    .small-card {
+      left: 22px;
+      bottom: 0;
+      width: 80px;
+      height: 68px;
+      padding-top: 12px;
+      background: #fff6fb;
+      border: 3px solid rgba(179, 126, 146, 0.38);
+      border-radius: 12px;
+      color: #a77cb1;
+      font-weight: 700;
+      font-size: 14px;
+      box-shadow: 0 12px 22px rgba(183, 129, 149, 0.18);
+      transform: rotate(-8deg);
+    }
+
+    .flower {
+      font-size: 34px;
+      color: #ef8fa8;
+    }
+
+    .f1 { left: 22px; bottom: 74px; }
+    .f2 { right: 44px; top: 188px; }
+    .f3 { right: 0; bottom: 14px; }
+
+    .big-bless {
+      margin: 16px 0 8px;
+      color: var(--pink-text);
+      font-size: clamp(34px, 9vw, 56px);
+      font-weight: 900;
+      letter-spacing: 2px;
+      font-family: "STKaiti", "KaiTi", "Microsoft YaHei", serif;
+      text-shadow: 0 8px 18px rgba(214, 93, 131, 0.18);
+    }
+
+    .sub-line {
+      color: rgba(194, 90, 120, 0.55);
+      font-size: 15px;
+      transform: rotate(-4deg);
+      margin-bottom: 16px;
+    }
+
+    .intro-copy {
+      margin: 22px auto 0;
+      max-width: 420px;
+      color: rgba(255,255,255,0.96);
+      font-size: 18px;
+      line-height: 1.8;
+      text-shadow: 0 2px 8px rgba(181, 107, 131, 0.32);
+    }
+
+    .enter-tip {
+      margin-top: 22px;
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+    }
+
+    .main-page {
+      position: relative;
+      z-index: 1;
+      width: min(100%, 520px);
+      margin: 0 auto;
+      padding: 74px 14px 36px;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.7s ease, transform 0.7s ease;
+    }
+
+    .main-page.ready {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .letter {
+      position: relative;
+      background: linear-gradient(180deg, #ffffff 0%, #fffafb 100%);
+      border-radius: 18px;
+      padding: 18px 16px 22px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .letter::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        repeating-linear-gradient(
+          180deg,
+          transparent 0,
+          transparent 30px,
+          rgba(232, 167, 187, 0.28) 30px,
+          rgba(232, 167, 187, 0.28) 31px
+        );
+      pointer-events: none;
+      opacity: 0.9;
+    }
+
+    .letter::after {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 18px;
+      bottom: 0;
+      width: 2px;
+      background: rgba(255, 172, 193, 0.34);
+    }
+
+    .letter-inner {
+      position: relative;
+      z-index: 1;
+      padding-left: 18px;
+    }
+
+    .letter-top {
+      margin-bottom: 14px;
+      color: var(--pink-deep);
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .salute {
+      margin: 0 0 12px;
+      font-size: 18px;
+      color: #c74f79;
+      font-weight: 700;
+    }
+
+    .type-block {
+      min-height: 1.8em;
+      margin: 0 0 14px;
+      font-size: 15px;
+      line-height: 1.95;
+      color: #71495a;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .typing::after {
+      content: "|";
+      display: inline-block;
+      margin-left: 2px;
+      color: #e26b8d;
+      animation: blink 0.9s steps(1) infinite;
+    }
+
+    .sign {
+      margin-top: 18px;
+      font-size: 15px;
+      line-height: 1.9;
+      color: #7d5062;
+      white-space: pre-wrap;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      text-align: center;
+      color: rgba(121, 73, 91, 0.9);
+      font-size: 13px;
+      line-height: 1.8;
+    }
+
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes floatDown {
+      to {
+        transform: translate3d(var(--drift), 115vh, 0) rotate(240deg);
+      }
+    }
+
+    @media (max-width: 380px) {
+      .intro-card {
+        padding-left: 12px;
+        padding-right: 12px;
+      }
+
+      .love-heart {
+        width: 126px;
+        height: 110px;
+        font-size: 16px;
+      }
+
+      .big-bless {
+        font-size: 30px;
+      }
+
+      .letter {
+        padding: 16px 12px 20px;
+      }
+
+      .letter-inner {
+        padding-left: 14px;
+      }
+
+      .type-block,
+      .sign {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body class="locked">
+  <div class="intro-floating" aria-hidden="true"></div>
+  <div class="floating" aria-hidden="true"></div>
+
+  <button class="music-btn" id="musicBtn" type="button" aria-label="播放或暂停背景音乐">
+    <span class="disc" aria-hidden="true"></span>
+    <span id="musicText">轻触播放祝福音乐</span>
+  </button>
+
+  <div class="unlock-mask" id="unlockMask">
+    <div class="unlock-card">
+      <strong>轻触页面开启祝福音乐</strong>
+      <span>当前设备拦截了网页直接外放声音。<br>点页面任意位置后会立即播放。</span>
+    </div>
+  </div>
+
+  <section class="intro-screen" id="introScreen">
+    <div class="intro-card">
+      <div class="top-ui">
+        <span class="fake-icon">‹</span>
+        <span class="fake-icon">⌕</span>
+      </div>
+
+      <div class="bubble-title">
+        母亲节快乐
+        <span class="small-love">LOVE</span>
+      </div>
+
+      <div class="intro-decor">
+        <div class="cartoon">👩‍👧</div>
+        <div class="young">永远<br>年轻</div>
+        <div class="flag">MOM</div>
+        <div class="heart-balloon"></div>
+        <div class="love-heart">LOVE YOU<br>MOM</div>
+        <div class="small-card">养你</div>
+        <div class="flower f1">🌷</div>
+        <div class="flower f2">🌷</div>
+        <div class="flower f3">🎁</div>
+      </div>
+
+      <div class="big-bless">妈妈，您辛苦了</div>
+      <div class="sub-line">I Love You Mom</div>
+
+      <div class="intro-copy">
+        母亲节要到了，来给妈妈送上祝福吧。<br>
+        祝全天下的妈妈母亲节快乐。
+      </div>
+
+      <div class="enter-tip">正在为妈妈展开这封信…</div>
+    </div>
+  </section>
+
+  <main class="main-page" id="mainPage">
+    <section class="letter">
+      <div class="letter-inner">
+        <div class="letter-top">To 我最最亲爱的妈咪</div>
+        <p class="salute">亲爱的妈妈：<br>您好！</p>
+
+        <p class="type-block" data-text="今天是母亲节，借着这个温暖的节日，想跟您说一句：妈妈，节日快乐，您辛苦了！"></p>
+        <p class="type-block" data-text="从小到大，您一直默默为我操劳，把最好的都留给我，无微不至地照顾我、包容我，用最平凡、最无私的爱护我长大。如今我长大成人，在我家小厨好好工作、认真生活，努力成为您的骄傲，可我却总因为工作忙碌，陪在您身边的时间少之又少，很少亲口跟您说一句感谢，很少好好陪您吃一顿饭。"></p>
+        <p class="type-block" data-text="我知道，我在外工作，您总是牵挂担心，怕我辛苦、怕我受累，您从不奢求我大富大贵，只愿我平安开心、安稳顺遂。这份深沉的母爱，我永远记在心里，也永远心怀感恩。"></p>
+        <p class="type-block" data-text="是您给了我生命，教我做人做事，让我踏实善良、认真对待工作和生活。在我家小厨，我会好好上班，踏实工作，照顾好自己，不让您操心，努力好好孝顺您，往后换我来守护您、疼爱您。"></p>
+        <p class="type-block" data-text="岁月无声，母爱无言，愿时光温柔以待，我亲爱的妈妈，往后余生，平安健康，无忧无虑，永远开心，永远被温柔以待，不用再那么辛苦劳累。"></p>
+        <p class="type-block" data-text="我爱您，我的妈妈！祝您母亲节快乐，一生安康！"></p>
+        <p class="sign" data-text="您的孩子&#10;2026年母亲节"></p>
+      </div>
+    </section>
+
+    <div class="footer-note">
+      愿这封小小的信，把爱和感谢轻轻送到妈妈身边。
+    </div>
+  </main>
+
+  <audio id="bgMusic" src="./assets/mothers-day-music.mp3" preload="auto" autoplay muted loop playsinline webkit-playsinline x5-playsinline></audio>
+
+  <script>
+    const body = document.body;
+    const introScreen = document.getElementById("introScreen");
+    const mainPage = document.getElementById("mainPage");
+    const music = document.getElementById("bgMusic");
+    const musicBtn = document.getElementById("musicBtn");
+    const musicText = document.getElementById("musicText");
+    const unlockMask = document.getElementById("unlockMask");
+    const introFloating = document.querySelector(".intro-floating");
+    const floating = document.querySelector(".floating");
+    let introClosed = false;
+    let startedTyping = false;
+    let autoplayUnlocked = false;
+
+    function createFloating(container, count) {
+      const icons = ["❤", "✦", "❀", "♡"];
+      for (let i = 0; i < count; i += 1) {
+        const item = document.createElement("span");
+        item.className = "float-item";
+        item.textContent = icons[i % icons.length];
+        item.style.left = `${Math.random() * 100}%`;
+        item.style.fontSize = `${14 + Math.random() * 18}px`;
+        item.style.opacity = `${0.35 + Math.random() * 0.4}`;
+        item.style.setProperty("--drift", `${Math.random() * 100 - 50}px`);
+        item.style.animationDuration = `${10 + Math.random() * 8}s`;
+        item.style.animationDelay = `${Math.random() * -12}s`;
+        container.appendChild(item);
+      }
+    }
+
+    async function playMusic(forceUnmute = true) {
+      try {
+        await music.play();
+        if (forceUnmute) {
+          music.muted = false;
+          music.volume = 1;
+        }
+        autoplayUnlocked = true;
+        unlockMask.classList.remove("show");
+        musicBtn.classList.remove("visible");
+        musicBtn.classList.add("playing");
+        musicText.textContent = "祝福音乐播放中";
+      } catch (error) {
+        autoplayUnlocked = false;
+        musicBtn.classList.remove("playing");
+        musicBtn.classList.add("visible");
+        musicText.textContent = "轻触播放祝福音乐";
+        throw error;
+      }
+    }
+
+    function pauseMusic() {
+      music.pause();
+      autoplayUnlocked = false;
+      musicBtn.classList.remove("playing");
+      musicBtn.classList.add("visible");
+      musicText.textContent = "轻触播放祝福音乐";
+    }
+
+    function unlockAudio() {
+      music.muted = false;
+      unlockMask.classList.remove("show");
+      playMusic(true).catch(() => {
+        musicBtn.classList.add("visible");
+      });
+      document.removeEventListener("click", unlockAudio);
+      document.removeEventListener("touchstart", unlockAudio);
+      document.removeEventListener("WeixinJSBridgeReady", unlockAudio);
+    }
+
+    async function bootstrapAutoPlay() {
+      try {
+        music.muted = true;
+        music.volume = 0;
+        await music.play();
+        musicBtn.classList.add("playing");
+        musicText.textContent = "祝福音乐播放中";
+
+        setTimeout(async () => {
+          try {
+            music.muted = false;
+            music.volume = 1;
+            await music.play();
+            musicBtn.classList.add("playing");
+            musicText.textContent = "祝福音乐播放中";
+          } catch (error) {
+            autoplayUnlocked = false;
+            musicBtn.classList.add("visible");
+            musicText.textContent = "轻触播放祝福音乐";
+          }
+        }, 180);
+      } catch (error) {
+        autoplayUnlocked = false;
+        musicBtn.classList.add("visible");
+        musicText.textContent = "轻触播放祝福音乐";
+      }
+    }
+
+    function tryAutoPlay() {
+      bootstrapAutoPlay();
+      setTimeout(() => bootstrapAutoPlay(), 400);
+      setTimeout(() => playMusic(true), 1000);
+      setTimeout(() => playMusic(true), 1800);
+      setTimeout(() => {
+        if (!autoplayUnlocked && music.paused) {
+          unlockMask.classList.add("show");
+          musicBtn.classList.add("visible");
+        }
+      }, 2200);
+    }
+
+    async function typeText(element, text, speed) {
+      element.classList.add("typing");
+      element.textContent = "";
+      for (const char of text) {
+        element.textContent += char;
+        await new Promise((resolve) => setTimeout(resolve, char === "，" || char === "。" || char === "！" ? speed + 40 : speed));
+      }
+      element.classList.remove("typing");
+    }
+
+    async function runLetterAnimation() {
+      if (startedTyping) return;
+      startedTyping = true;
+      const blocks = Array.from(document.querySelectorAll("[data-text]"));
+      for (const block of blocks) {
+        const text = block.dataset.text.replaceAll("&#10;", "\n");
+        const speed = block.classList.contains("sign") ? 55 : 22;
+        await typeText(block, text, speed);
+        await new Promise((resolve) => setTimeout(resolve, 280));
+      }
+    }
+
+    function showLetter() {
+      if (introClosed) return;
+      introClosed = true;
+      introScreen.classList.add("hidden");
+      body.classList.remove("locked");
+      mainPage.classList.add("ready");
+      setTimeout(() => {
+        runLetterAnimation();
+      }, 450);
+    }
+
+    musicBtn.addEventListener("click", () => {
+      if (music.paused) playMusic();
+      else pauseMusic();
+    });
+
+    unlockMask.addEventListener("click", unlockAudio);
+    unlockMask.addEventListener("touchstart", unlockAudio, { passive: true });
+
+    music.addEventListener("error", () => {
+      musicText.textContent = "请放入背景音乐文件";
+    });
+
+    createFloating(introFloating, 14);
+    createFloating(floating, 18);
+
+    document.addEventListener("touchstart", unlockAudio, { once: true });
+    document.addEventListener("click", unlockAudio, { once: true });
+    document.addEventListener("DOMContentLoaded", () => {
+      tryAutoPlay();
+    });
+
+    document.addEventListener("WeixinJSBridgeReady", () => {
+      tryAutoPlay();
+      unlockAudio();
+    }, false);
+
+    document.addEventListener("YixinJSBridgeReady", () => {
+      tryAutoPlay();
+      unlockAudio();
+    }, false);
+
+    window.addEventListener("load", () => {
+      tryAutoPlay();
+      setTimeout(showLetter, 5000);
+    });
+
+    window.addEventListener("pageshow", () => {
+      tryAutoPlay();
+    });
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible" && music.paused) {
+        tryAutoPlay();
+      }
+    });
+  </script>
+</body>
+</html>
